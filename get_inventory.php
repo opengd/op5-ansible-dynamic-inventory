@@ -1,6 +1,32 @@
 #!/usr/bin/php
 <?php
 
+$config = [
+	"OP5" => [
+		"LIST_QUERIES" => [
+			[
+				"USERPWD" => 'api$Default:api',
+				"HOST" => 'https://YOUR.OP5.URL/api/filter/query',
+				"FILTERS" => [
+					"op5hosts" => [
+						"FILTER" => '?format=json&query=[hosts]groups>="YOUR_HOST_GROUP"',
+						"COLUMNS" => "&columns=name,address",
+						"CONFIG" => [
+							"ansible_port" => [
+								22, 22022
+							],
+							"ansible_host" => 'address'
+						],
+						"LIMIT" => null,
+						"OFFSET" => null,
+					]
+				],
+				"GROUP_CONFIG" => []
+			]
+		],
+	],
+];
+
 const OP5_API_ADDRESS = 'https://YOUR.OP5.URL/api/filter/query';
 const OP5_API_GET_HOSTS_QUERY = '?format=json&query=[hosts]groups>="YOUR_HOST_GROUP"';
 const OP5_API_GET_HOST_QUERY = '?format=json&query=[hosts]name = ';
@@ -202,3 +228,5 @@ $longopts = array(
 $opts = getopt("", $longopts);
 
 echo get_inventory($opts);
+
+echo json_encode($config);
