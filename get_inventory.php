@@ -11,7 +11,7 @@ $config = [
 					"op5hosts" => [
 						"FILTER" => '?format=json&query=[hosts]groups>="YOUR_HOST_GROUP"',
 						"COLUMNS" => "&columns=name,address",
-						"CONFIG" => [
+						"HOST_VARS" => [
 							"ansible_port" => [
 								22, 22022
 							],
@@ -21,9 +21,25 @@ $config = [
 						"OFFSET" => null,
 					]
 				],
-				"GROUP_CONFIG" => []
+				"GROUP_VARS" => []
 			]
 		],
+		"HOST_QUERIES" => [
+			[
+				"USERPWD" => 'api$Default:api',
+				"HOST" => 'https://YOUR.OP5.URL/api/filter/query',
+				"QUERY" => [
+					'?format=json&query=[hosts]name= ',
+					"COLUMNS" => "&columns=name,address",
+					"VARS" => [
+						"ansible_port" => [
+							22, 22022
+						],
+						"ansible_host" => 'address'
+					],
+				]
+			]
+		]
 	],
 ];
 
