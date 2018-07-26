@@ -6,10 +6,23 @@ $config = [
 		"LIST_QUERIES" => [
 			[
 				"USERPWD" => 'api$Default:api',
-				"HOST" => 'https://YOUR.OP5.URL/api/filter/query',
+				"HOST" => 'https://YOUR.OP5.URL',
+				"API" => '/api/filter/query?format=json&query=',
 				"FILTERS" => [
 					"op5hosts" => [
-						"FILTER" => '?format=json&query=[hosts]groups>="YOUR_HOST_GROUP"',
+						"FILTER" => '[hosts] name ~~ "*demo*"',
+						"COLUMNS" => "&columns=name,address",
+						"HOST_VARS" => [
+							"ansible_port" => [
+								22, 22022
+							],
+							"ansible_host" => 'address'
+						],
+						"LIMIT" => 10,
+						"OFFSET" => null,
+					],
+					"others" => [
+						"FILTER" => '[hosts] name ~~ "*demo2*"',
 						"COLUMNS" => "&columns=name,address",
 						"HOST_VARS" => [
 							"ansible_port" => [
@@ -27,8 +40,9 @@ $config = [
 		"HOST_QUERIES" => [
 			[
 				"USERPWD" => 'api$Default:api',
-				"HOST" => 'https://YOUR.OP5.URL/api/filter/query',
-				"QUERY" => '?format=json&query=[hosts]name= ',
+				"HOST" => 'https://YOUR.OP5.URL',
+				"API" => '/api/filter/query?format=json&query=',
+				"QUERY" => '[hosts]name= {HOST}',
 				"COLUMNS" => "&columns=name,address",
 				"VARS" => [
 					"ansible_port" => [
@@ -41,17 +55,7 @@ $config = [
 	],
 ];
 
-const OP5_API_ADDRESS = 'https://YOUR.OP5.URL/api/filter/query';
-const OP5_API_GET_HOSTS_QUERY = '?format=json&query=[hosts]groups>="YOUR_HOST_GROUP"';
-const OP5_API_GET_HOST_QUERY = '?format=json&query=[hosts]name = ';
-const OP5_API_QUERY_COLUMNS = "&columns=name,address";
-const OP5_API_USERPWD = 'api$Default:api';
-const OP5_HOST_LIMIT = 10;
-const OP5_HOST_OFFSET = null;
-
-const ANSIBLE_PORTS = array(
-	22, 22022
-);
+const CONFIG_FILE = 'config.json';
 
 /**
  * Get a host list from OP5 as JSON
@@ -71,9 +75,9 @@ function get_host_list_from_op5($static_limit) {
 			$call .= $static_limit ? "&limit=" . $static_limit : "";
 			$call .= !$static_limit && $filter["LIMIT"] ? "&limit=" . $filter["LIMIT"] : "";
 			$call .= $filter["OFFSET"] ? "&offset=" . $filter["OFFSET"] : "";
-			$call = str_replace(" ", "%20", $call);
+			$call = str_replace(" ", "%20", $call);		
 			//echo $listQueries["HOST"] . $call . "\n";
-			$a_handle = curl_init($listQueries["HOST"] . $call);
+			$a_handle = curl_init($listQueries["HOST"] . $listQueries["API"] . $call);
 			curl_setopt($a_handle, CURLOPT_USERPWD, $listQueries["USERPWD"]);
 			curl_setopt($a_handle, CURLOPT_RETURNTRANSFER, TRUE);
 			curl_setopt($a_handle, CURLOPT_HTTPHEADER, array('Content-Type: application/json'));
@@ -103,9 +107,10 @@ function get_host_from_op5($hostName) {
 	$host = array();
 
 	foreach($config["OP5"]["HOST_QUERIES"] as $key => $hostQueries) {
-		$call =  $hostQueries["QUERY"] . '"' . $hostName . '"' . $hostQueries["COLUMNS"];
+		$call =  $hostQueries["QUERY"] . $hostQueries["COLUMNS"];
+		$call = str_replace("{HOST}", '"' . $hostName . '"' , $call);
 		$call = str_replace(" ", "%20", $call);
-		$a_handle = curl_init($hostQueries["HOST"] . $call);
+		$a_handle = curl_init($hostQueries["HOST"] . $hostQueries["API"] . $call);
 		curl_setopt($a_handle, CURLOPT_USERPWD, $hostQueries["USERPWD"]);
 		curl_setopt($a_handle, CURLOPT_RETURNTRANSFER, TRUE);
 		curl_setopt($a_handle, CURLOPT_HTTPHEADER, array('Content-Type: application/json'));
@@ -136,13 +141,15 @@ function filter_active_hosts($hosts) {
 	foreach($hosts as $key => $host) {
 		foreach($host as $filterName => $filter) {
 			$filter_hosts = array();
-			for($i = 0; $i < count($filter); $i++) {
+			if($filter) {
+				for($i = 0; $i < count($filter); $i++) {
 
-				$port = get_ansible_port($filter[$i], $config["OP5"]["LIST_QUERIES"][$key]["FILTERS"][$filterName]["HOST_VARS"]["ansible_port"]);
+					$port = get_ansible_port($filter[$i], $config["OP5"]["LIST_QUERIES"][$key]["FILTERS"][$filterName]["HOST_VARS"]["ansible_port"]);
 
-				if($port) {
-					$filter[$i]['ansible_port'] = $port;
-					array_push($filter_hosts, $filter[$i]);
+					if($port) {
+						$filter[$i]['ansible_port'] = $port;
+						array_push($filter_hosts, $filter[$i]);
+					}
 				}
 			}
 			$hosts[$key][$filterName] = $filter_hosts;
@@ -314,6 +321,14 @@ $longopts = array(
 );
 
 $opts = getopt("", $longopts);
+
+$config_file_resource = fopen(CONFIG_FILE, "r");
+
+if($config_file_resource) {
+	$config_file = fread($config_file_resource, filesize(CONFIG_FILE));
+	fclose($config_file_resource);
+	$config = json_decode($config_file, true);
+}
 
 echo get_inventory($opts);
 
