@@ -2,27 +2,22 @@
     "OP5":{
         "LIST_QUERIES":[
             {
-                "USERPWD":"api$Default:api",
-                "HOST":"https:\/\/YOUR.OP5.URL",
-                "API":"\/api\/filter\/query?format=json&query=",
-                "FILTERS":{
-                    "demo":{
-                        "FILTER":"[hosts] name ~~ \"*demo*\"",
-                        "COLUMNS":"&columns=name,address",
+                "USERPWD": "api$Default:api",
+                "HOST": "https:\/\/YOUR.OP5.URL",
+                "API": "\/api\/filter\/query?format=json&query=",
+                "FILTERS": {
+                    "demo": {
+                        "FILTER": "[hosts]name~~\"demo*\"",
+                        "COLUMNS": { 
+                            "NAME": "name",
+                            "ADDRESS": "address"
+                        },
                         "HOST_VARS":{
-                            "ansible_port":[22,22022],
-                            "ansible_host":"address"},
-                            "LIMIT":10,
-                            "OFFSET":null
-                    },
-                    "demo2":{
-                        "FILTER":"[hosts] name ~~ \"*demo2*\"",
-                        "COLUMNS":"&columns=name,address",
-                        "HOST_VARS":{
-                            "ansible_port":[22,22022],
-                            "ansible_host":"address"},
-                            "LIMIT":10,
-                            "OFFSET":null
+                            "ansible_port": 22,
+                            "ansible_host": "ADDRESS" 
+                        },
+                        "LIMIT": null,
+                        "OFFSET": null
                     }
                 },
                 "GROUP_VARS":[]
@@ -30,14 +25,17 @@
         ],
         "HOST_QUERIES":[
             {
-                "USERPWD":"api$Default:api",
+                "USERPWD":"api$Default:aipi",
                 "HOST":"https:\/\/YOUR.OP5.URL",
                 "API":"\/api\/filter\/query?format=json&query=",
                 "QUERY":"[hosts]name= {HOST}",
-                "COLUMNS":"&columns=name,address",
+                "COLUMNS": { 
+                    "NAME": "name",
+                    "ADDRESS": "address"
+                },
                 "VARS":{
                     "ansible_port":[22,22022],
-                    "ansible_host":"address"
+                    "ansible_host":"ADDRESS"
                 }
             }
         ]
