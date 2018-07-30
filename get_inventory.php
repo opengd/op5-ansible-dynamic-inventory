@@ -2,41 +2,42 @@
 <?php
 
 $config = [
-	"OP5" => [
-		"LIST_QUERIES" => [
+	"op5" => [
+		"list_query" => [
 			[
-				"USERPWD" => 'api$Default:api',
-				"HOST" => 'https://YOUR.OP5.URL',
-				"API" => '/api/filter/query?format=json&query=',
-				"FILTERS" => [
+				"userpwd" => 'api$Default:api',
+				"host" => 'https://YOUR.op5.URL',
+				"api" => '/api/filter/query?format=json&query=',
+				"filters" => [
 					"demo" => [
-						"FILTER" => '[hosts] name ~~ "demo*"',
-						"COLUMNS" => [ 
+						"filter" => '[hosts] name ~~ "demo*"',
+						"columns" => [ 
 							"NAME" => "name",
 							"ADDRESS" => "address"
 						],
-						"HOST_VARS" => [
+						"host_vars" => [
 							"ansible_port" => [22,22022],
 							"ansible_host" => "ADDRESS"
 						],
-						"LIMIT" => null,
-						"OFFSET" => null,
+						"limit" => null,
+						"offset" => null,
+						"group_vars" => []
 					]
 				],
-				"GROUP_VARS" => []
+				
 			]
 		],
-		"HOST_QUERIES" => [
+		"host_query" => [
 			[
-				"USERPWD" => 'api$Default:api',
-				"HOST" => 'https://YOUR.OP5.URL',
-				"API" => '/api/filter/query?format=json&query=',
-				"QUERY" => '[hosts]name= {HOST}',
-                "COLUMNS" => [ 
+				"userpwd" => 'api$Default:api',
+				"host" => 'https://YOUR.op5.URL',
+				"api" => '/api/filter/query?format=json&query=',
+				"filter" => '[hosts]name= {host}',
+                "columns" => [ 
                     "NAME" => "name",
                     "ADDRESS" => "address"
 				],
-                "VARS" => [
+                "host_vars" => [
                     "ansible_port" => [22,22022],
                     "ansible_host" => "ADDRESS"
 				]
@@ -48,7 +49,7 @@ $config = [
 const CONFIG_FILE = 'config.json';
 
 /**
- * Get a host list from OP5 as JSON
+ * Get a host list from op5 as JSON
  * 
  * @return array
  */
@@ -57,16 +58,16 @@ function get_host_list_from_op5($static_limit) {
 
 	$allHosts = array();
 	$i = 0;
-	foreach($config["OP5"]["LIST_QUERIES"] as $listQueries) {
+	foreach($config["op5"]["list_query"] as $listQueries) {
 		$allHosts[$i] = array();
-		foreach($listQueries["FILTERS"] as $filterName => $filter) {
-			$call =  $filter["FILTER"];
+		foreach($listQueries["filters"] as $filterName => $filter) {
+			$call =  $filter["filter"];
 
 			$columns = "";
 
-			if(is_array($filter["COLUMNS"]) && count($filter["COLUMNS"]) > 0) {
+			if(is_array($filter["columns"]) && count($filter["columns"]) > 0) {
 				$columns = "&columns=";
-				foreach($filter["COLUMNS"] as $key => $name) {
+				foreach($filter["columns"] as $key => $name) {
 					$columns .= $name . ",";
 				}
 				$columns = substr($columns, 0, -1);
@@ -75,10 +76,10 @@ function get_host_list_from_op5($static_limit) {
 			$call .= $columns;
 
 			$call .= $static_limit ? "&limit=" . $static_limit : "";
-			$call .= !$static_limit && $filter["LIMIT"] ? "&limit=" . $filter["LIMIT"] : "";
-			$call .= $filter["OFFSET"] ? "&offset=" . $filter["OFFSET"] : "";
+			$call .= !$static_limit && $filter["limit"] ? "&limit=" . $filter["limit"] : "";
+			$call .= $filter["offset"] ? "&offset=" . $filter["offset"] : "";
 
-			$data = do_curl_call($listQueries["HOST"] . $listQueries["API"] . $call, $listQueries["USERPWD"]);
+			$data = do_curl_call($listQueries["host"] . $listQueries["api"] . $call, $listQueries["userpwd"]);
 
 			if($data) $allHosts[$i][$filterName] = $data;
 		}
@@ -89,7 +90,7 @@ function get_host_list_from_op5($static_limit) {
 }
 
 /**
- * Get a host from OP5 as JSON
+ * Get a host from op5 as JSON
  * 
  * @param string $hostName
  * 
@@ -100,14 +101,14 @@ function get_host_from_op5($hostName) {
 
 	$host = array();
 
-	foreach($config["OP5"]["HOST_QUERIES"] as $index => $hostQueries) {
-		$call =  $hostQueries["QUERY"];
+	foreach($config["op5"]["host_query"] as $index => $hostQueries) {
+		$call =  $hostQueries["filter"];
 
 		$columns = "";
 
-		if(is_array($hostQueries["COLUMNS"]) && count($hostQueries["COLUMNS"]) > 0) {
+		if(is_array($hostQueries["columns"]) && count($hostQueries["columns"]) > 0) {
 			$columns = "&columns=";
-			foreach($hostQueries["COLUMNS"] as $key => $name) {
+			foreach($hostQueries["columns"] as $key => $name) {
 				$columns .= $name . ",";
 			}
 			$columns = substr($columns, 0, -1);
@@ -115,10 +116,10 @@ function get_host_from_op5($hostName) {
 
 		$call .= $columns;
 
-		$call = str_replace("{HOST}", '"' . $hostName . '"' , $call);
-		$a_handle = curl_init($hostQueries["HOST"] . $hostQueries["API"] . $call);
+		$call = str_replace("{host}", '"' . $hostName . '"' , $call);
+		$a_handle = curl_init($hostQueries["host"] . $hostQueries["api"] . $call);
 
-		$data = do_curl_call($hostQueries["HOST"] . $hostQueries["API"] . $call, $hostQueries["USERPWD"]);
+		$data = do_curl_call($hostQueries["host"] . $hostQueries["api"] . $call, $hostQueries["userpwd"]);
 
 		if($data) {
 			$host[$index] = $data;
@@ -174,11 +175,11 @@ function filter_active_hosts($hosts) {
 	
 	foreach($hosts as $key => $host) {
 		foreach($host as $filterName => $filter) {
-			if(array_key_exists("ansible_port", $config["OP5"]["LIST_QUERIES"][$key]["FILTERS"][$filterName]["HOST_VARS"])) {
-				if(is_array($config["OP5"]["LIST_QUERIES"][$key]["FILTERS"][$filterName]["HOST_VARS"]["ansible_port"])) {
-					$ports = $config["OP5"]["LIST_QUERIES"][$key]["FILTERS"][$filterName]["HOST_VARS"]["ansible_port"];
+			if(array_key_exists("ansible_port", get_list_query_filter($filterName, $key)["host_vars"])) {
+				if(is_array(get_list_query_filter($filterName, $key)["host_vars"]["ansible_port"])) {
+					$ports = get_list_query_filter($filterName, $key)["host_vars"]["ansible_port"];
 				} else {
-					$ports = array((int)$config["OP5"]["LIST_QUERIES"][$key]["FILTERS"][$filterName]["HOST_VARS"]["ansible_port"]);
+					$ports = array((int)get_list_query_filter($filterName, $key)["host_vars"]["ansible_port"]);
 				}
 			} else {
 				$ports = array(22);
@@ -213,12 +214,12 @@ function is_host_active($hosts) {
 	global $config;
 	var_dump($hosts);
 	foreach($hosts as $key => $host) {
-		//var_dump($config["OP5"]["HOST_QUERIES"]);
-		if(array_key_exists("ansible_port", $config["OP5"]["HOST_QUERIES"][$key]["VARS"])) {
-			if(is_array($config["OP5"]["HOST_QUERIES"][$key]["VARS"]["ansible_port"])) {
-				$ports = $config["OP5"]["HOST_QUERIES"][$key]["VARS"]["ansible_port"];
+		//var_dump($config["op5"]["host_query"]);
+		if(array_key_exists("ansible_port", $config["op5"]["host_query"][$key]["host_vars"])) {
+			if(is_array($config["op5"]["host_query"][$key]["host_vars"]["ansible_port"])) {
+				$ports = $config["op5"]["host_query"][$key]["host_vars"]["ansible_port"];
 			} else {
-				$ports = array((int)$config["OP5"]["HOST_QUERIES"][$key]["VARS"]["ansible_port"]);
+				$ports = array((int)$config["op5"]["host_query"][$key]["host_vars"]["ansible_port"]);
 			}
 		} else {
 			$ports = array(22);
@@ -255,7 +256,7 @@ function get_ansible_port($host, $ports) {
 }
 
 /**
- * Parse OP5 host list to a ansible json string
+ * Parse op5 host list to a ansible json string
  * 
  * @param array $hosts
  * 
@@ -271,10 +272,18 @@ function parse_host_list_to_ansible_json($hosts) {
 			foreach($filter as $host) {
 				array_push($main[$filterName]["hosts"], $host['name']);
 				$main["_meta"]["hostvars"][$host['name']] = parse_host_vars($host, 
-					$config["OP5"]["LIST_QUERIES"][$index]["FILTERS"][$filterName]["HOST_VARS"], 
-					$config["OP5"]["LIST_QUERIES"][$index]["FILTERS"][$filterName]["COLUMNS"]
+					get_list_query_filter($filterName, $index)["host_vars"], 
+					get_list_query_filter($filterName, $index)["columns"]
 				);
 			}
+			if(array_key_exists("group_vars", get_list_query_filter($filterName, $index))) {
+				$main[$filterName]["vars"] = get_list_query_filter($filterName, $index)["group_vars"];
+			}
+
+			if(array_key_exists("children", get_list_query_filter($filterName, $index))) {
+				$main[$filterName]["children"] = get_list_query_filter($filterName, $index)["children"];
+			}
+			
 		}
 	}
 
@@ -282,7 +291,32 @@ function parse_host_list_to_ansible_json($hosts) {
 }
 
 /**
- * Parse OP5 host to a ansible vars json string
+ * Get the list query from index
+ * 
+ * @param int $index
+ * 
+ * @return array
+ */
+function get_list_query($index) {
+	global $config;
+
+	return $config["op5"]["list_query"][$index];
+}
+
+/**
+ * Get the list query filter from filter name and index
+ * 
+ * @param string $filterName
+ * @param int $queryIndex
+ * 
+ * @return array
+ */
+function get_list_query_filter($filterName, $queryIndex) {
+	return get_list_query($queryIndex)["filters"][$filterName];
+}
+
+/**
+ * Parse op5 host to a ansible vars json string
  * 
  * @param array $host
  * @param array $host_vars
@@ -336,7 +370,7 @@ function create_static_inventory_file($data, $filename, $group = "hosts", $appen
 }
 
 /**
- * Output OP5 data
+ * Output op5 data
  * 
  * @param array $opts
  * 
@@ -365,8 +399,8 @@ function get_inventory($opts) {
 
 		foreach($data as $key => $value) {
 			$host_vars = parse_host_vars($data[$key][0], 
-				$config["OP5"]["HOST_QUERIES"][$key]["VARS"],
-				$config["OP5"]["HOST_QUERIES"][$key]["COLUMNS"]
+				$config["op5"]["host_query"][$key]["host_vars"],
+				$config["op5"]["host_query"][$key]["columns"]
 			);
 			break;
 		}
@@ -376,11 +410,11 @@ function get_inventory($opts) {
 		$ret = "Usage: get_op5_inventory.php [OPTION]\n";
 		$ret .= "op5-ansible-dynamic-inventory @2018\n\n";
 		$ret .= "--list\t\t\t\tget json list of op5 hosts\n";
-		$ret .= "--host=HOST\t\t\tget ansible meta variable from op5 host\n";
+		$ret .= "--host=host\t\t\tget ansible meta variable from op5 host\n";
 		$ret .= "--static\t\t\tcreate inventory file from op5 hosts\n";
 		$ret .= "--static_group=NAME\t\tstatic inventory group name\n";
 		$ret .= "--static_filename=FILENAME\tfilename of static inventory\n";
-		$ret .= "--static_limit=LIMIT\t\tlimit number of host for inventory\n";
+		$ret .= "--static_limit=limit\t\tlimit number of host for inventory\n";
 		$ret .= "--config_file=CONFIG_FILE\tfilepath to config file\n";
 		$ret .= "--verbose\t\t\tshow verbose data and errors\n";
 		$ret .= "--help\t\t\t\tshow this help message\n";
