@@ -30,45 +30,50 @@ This is the example config.json, you can find it as config.json.example in the o
 
 ``` javascript
 {
-    "OP5":{
-        "LIST_QUERIES":[
+    "op5":{
+        "list_query":[
             {
-                "USERPWD": "api$Default:api",
-                "HOST": "https:\/\/YOUR.OP5.URL",
-                "API": "\/api\/filter\/query?format=json&query=",
-                "FILTERS": {
+                "userpwd": "api$Default:api",
+                "host": "https:\/\/YOUR.OP5.URL",
+                "api": "\/api\/filter\/query?format=json&query=",
+                "filters": {
                     "demo": {
-                        "FILTER": "[hosts]name~~\"demo*\"",
-                        "COLUMNS": { 
+                        "filter": "[hosts]name~~\"demo*\"",
+                        "columns": { 
                             "NAME": "name",
                             "ADDRESS": "address"
                         },
-                        "HOST_VARS":{
+                        "host_vars":{
                             "ansible_port": 22,
                             "ansible_host": "ADDRESS" 
                         },
-                        "LIMIT": null,
-                        "OFFSET": null
+                        "limit": null,
+                        "offset": null,
+                        "group_vars": {
+                            "var1": true
+                        },
+                        "children": [],
+                        "check_ansible_port" => true
                     }
-                },
-                "GROUP_VARS":[]
+                }
             }
         ],
-        "HOST_QUERIES":[
+        "host_query":[
             {
-                "USERPWD":"api$Default:aipi",
-                "HOST":"https:\/\/YOUR.OP5.URL",
-                "API":"\/api\/filter\/query?format=json&query=",
-                "QUERY":"[hosts]name= {HOST}",
-                "COLUMNS": { 
+                "userpwd":"api$Default:aipi",
+                "host":"https:\/\/YOUR.OP5.URL",
+                "api":"\/api\/filter\/query?format=json&query=",
+                "filter":"[hosts]name= {host}",
+                "columns": { 
                     "NAME": "name",
                     "ADDRESS": "address"
                 },
-                "VARS":{
+                "host_vars":{
                     "ansible_port":[22,22022],
                     "ansible_host":"ADDRESS"
-                }
-            }
+                },
+                "check_ansible_port" => true
+            },
         ]
     }
 }

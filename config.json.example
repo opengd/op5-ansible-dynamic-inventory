@@ -16,12 +16,13 @@
                             "ansible_port": 22,
                             "ansible_host": "ADDRESS" 
                         },
-                        "limit": 10,
+                        "limit": null,
                         "offset": null,
                         "group_vars": {
                             "var1": true
                         },
-                        "children": []
+                        "children": [],
+                        "check_ansible_port" => true
                     }
                 }
             }
@@ -39,7 +40,8 @@
                 "host_vars":{
                     "ansible_port":[22,22022],
                     "ansible_host":"ADDRESS"
-                }
+                },
+                "check_ansible_port" => true
             },
         ]
     }

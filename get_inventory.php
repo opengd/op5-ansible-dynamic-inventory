@@ -21,10 +21,10 @@ $config = [
 						],
 						"limit" => null,
 						"offset" => null,
-						"group_vars" => []
+						"group_vars" => [],
+						"check_ansible_port" => true
 					]
-				],
-				
+				],				
 			]
 		],
 		"host_query" => [
@@ -40,7 +40,8 @@ $config = [
                 "host_vars" => [
                     "ansible_port" => [22,22022],
                     "ansible_host" => "ADDRESS"
-				]
+				],
+				"check_ansible_port" => true
 			]
 		]
 	],
@@ -53,7 +54,7 @@ const CONFIG_FILE = 'config.json';
  * 
  * @return array
  */
-function get_host_list_from_op5($static_limit) {
+function get_host_list_from_op5() {
 	global $config;
 
 	$allHosts = array();
@@ -65,7 +66,7 @@ function get_host_list_from_op5($static_limit) {
 
 			$columns = "";
 
-			if(is_array($filter["columns"]) && count($filter["columns"]) > 0) {
+			if(array_key_exists("columns", $filter) && is_array($filter["columns"]) && count($filter["columns"]) > 0) {
 				$columns = "&columns=";
 				foreach($filter["columns"] as $key => $name) {
 					$columns .= $name . ",";
@@ -75,9 +76,8 @@ function get_host_list_from_op5($static_limit) {
 
 			$call .= $columns;
 
-			$call .= $static_limit ? "&limit=" . $static_limit : "";
-			$call .= !$static_limit && $filter["limit"] ? "&limit=" . $filter["limit"] : "";
-			$call .= $filter["offset"] ? "&offset=" . $filter["offset"] : "";
+			$call .= array_key_exists("limit", $filter) && is_int($filter["limit"]) ? "&limit=" . $filter["limit"] : "";
+			$call .= array_key_exists("offset", $filter) && is_int($filter["offset"]) ? "&offset=" . $filter["offset"] : "";
 
 			$data = do_curl_call($listQueries["host"] . $listQueries["api"] . $call, $listQueries["userpwd"]);
 
@@ -175,28 +175,29 @@ function filter_active_hosts($hosts) {
 	
 	foreach($hosts as $key => $host) {
 		foreach($host as $filterName => $filter) {
-			if(array_key_exists("ansible_port", get_list_query_filter($filterName, $key)["host_vars"])) {
-				if(is_array(get_list_query_filter($filterName, $key)["host_vars"]["ansible_port"])) {
-					$ports = get_list_query_filter($filterName, $key)["host_vars"]["ansible_port"];
+			if(array_key_exists("check_ansible_port", get_list_query_filter($filterName, $key)) && get_list_query_filter($filterName, $key)["check_ansible_port"] === true) {
+				if(array_key_exists("ansible_port", get_list_query_filter($filterName, $key)["host_vars"])) {
+					if(is_array(get_list_query_filter($filterName, $key)["host_vars"]["ansible_port"])) {
+						$ports = get_list_query_filter($filterName, $key)["host_vars"]["ansible_port"];
+					} else {
+						$ports = array((int)get_list_query_filter($filterName, $key)["host_vars"]["ansible_port"]);
+					}
 				} else {
-					$ports = array((int)get_list_query_filter($filterName, $key)["host_vars"]["ansible_port"]);
+					$ports = array(22);
 				}
-			} else {
-				$ports = array(22);
-			}
-			$filter_hosts = array();
-			if($filter) {
-				for($i = 0; $i < count($filter); $i++) {
-					$port = get_ansible_port($filter[$i], $ports);
+				$filter_hosts = array();
+				if($filter) {
+					for($i = 0; $i < count($filter); $i++) {
+						$port = get_ansible_port($filter[$i], $ports);
 
-					if($port) {
-						$filter[$i]['ansible_port'] = $port;
-						array_push($filter_hosts, $filter[$i]);
+						if($port) {
+							$filter[$i]['ansible_port'] = $port;
+							array_push($filter_hosts, $filter[$i]);
+						}
 					}
 				}
-			}
-			$hosts[$key][$filterName] = $filter_hosts;
-			
+				$hosts[$key][$filterName] = $filter_hosts;
+			}		
 		}
 	}
 
@@ -214,23 +215,24 @@ function is_host_active($hosts) {
 	global $config;
 	var_dump($hosts);
 	foreach($hosts as $key => $host) {
-		//var_dump($config["op5"]["host_query"]);
-		if(array_key_exists("ansible_port", $config["op5"]["host_query"][$key]["host_vars"])) {
-			if(is_array($config["op5"]["host_query"][$key]["host_vars"]["ansible_port"])) {
-				$ports = $config["op5"]["host_query"][$key]["host_vars"]["ansible_port"];
+		if(array_key_exists("check_ansible_port", $config["op5"]["host_query"][$key]) && $config["op5"]["host_query"][$key]["check_ansible_port"] === true) {
+			if(array_key_exists("ansible_port", $config["op5"]["host_query"][$key]["host_vars"])) {
+				if(is_array($config["op5"]["host_query"][$key]["host_vars"]["ansible_port"])) {
+					$ports = $config["op5"]["host_query"][$key]["host_vars"]["ansible_port"];
+				} else {
+					$ports = array((int)$config["op5"]["host_query"][$key]["host_vars"]["ansible_port"]);
+				}
 			} else {
-				$ports = array((int)$config["op5"]["host_query"][$key]["host_vars"]["ansible_port"]);
+				$ports = array(22);
 			}
-		} else {
-			$ports = array(22);
-		}
 
-		$port = get_ansible_port($host[0], $ports);
+			$port = get_ansible_port($host[0], $ports);
 
-		if($port) {
-			$hosts[$key][0]['ansible_port'] = $port;
-		} else {
-			$hosts[$key][0] = array();
+			if($port) {
+				$hosts[$key][0]['ansible_port'] = $port;
+			} else {
+				$hosts[$key][0] = array();
+			}
 		}
 	}
 	
@@ -262,7 +264,7 @@ function get_ansible_port($host, $ports) {
  * 
  * @return string
  */
-function parse_host_list_to_ansible_json($hosts) {
+function parse_host_list_to_ansible($hosts) {
 	global $config;
 
 	$main = array("_meta" => array("hostvars" => array()));
@@ -287,7 +289,7 @@ function parse_host_list_to_ansible_json($hosts) {
 		}
 	}
 
-	return json_encode($main);
+	return $main;
 }
 
 /**
@@ -331,6 +333,7 @@ function parse_host_vars($host, $host_vars, $columns) {
 		switch($key) {
 			case "ansible_port":
 				$main[$key] = array_key_exists('ansible_port', $host) ? $host['ansible_port'] : $var;
+				$main[$key] = is_array($main[$key]) && count($main[$key]) > 0 ? $main[$key][0] : 22;
 				break;
 			default:
 				$main[$key] = array_key_exists($var, $columns) ? $host[$columns[$var]] : $var;
@@ -349,23 +352,42 @@ function parse_host_vars($host, $host_vars, $columns) {
  * @param string $group
  * @param boolean $append
  */
-function create_static_inventory_file($data, $filename, $group = "hosts", $append = false) {
-	echo "total: " . count($data) . "\n";
-	$myfile = fopen($filename, $append ? "a" : "w") or die("Unable to open file!");
-	fwrite($myfile, $group . "\n");
-	foreach ($data as $host) {
+function create_static_inventory_file($data, $filename) {
+	$myfile = fopen($filename, "w") or die("Unable to open file!");
 
-		if ($fp = @fsockopen($host['address'], 22,$errno, $errstr, 1)) { $port=22; fclose($fp);}
-		elseif ($fp = @fsockopen($host['address'], 22022, $errno, $errstr, 1)) { $port=22022; fclose($fp); }
-		else $port=null;;
-		if ($port) {
-			echo $host['name'] . ' ansible_port=' . $port . ' ansible_host=' . $host['address'];
-			echo "\n";
-			fwrite($myfile,  $host['name'] . ' ansible_port=' . $port . ' ansible_host=' . $host['address'] . "\n");
-		} else {
-			echo "Host: " . $host['name'] . " is not reachable\n";
+	$meta = array_key_exists('_meta', $data) ? $data['_meta'] : null;
+
+	foreach($data as $groupName => $groupValues) {
+		if($groupName !== '_meta') {
+			fwrite($myfile, "[" . $groupName . "]\n");
+			foreach($groupValues["hosts"] as $host) {
+				fwrite($myfile, $host);
+				foreach($meta["hostvars"][$host] as $hostVarsName => $hostVarsValueName) {
+					$s = " " . $hostVarsName . "=" . $hostVarsValueName;
+					fwrite($myfile, $s);
+				}
+				fwrite($myfile, "\n");
+			}
+
+			if(array_key_exists("vars", $groupValues) && count($groupValues["vars"]) > 0) {
+				fwrite($myfile, "\n[" . $groupName . ":vars]\n");
+				foreach($groupValues["vars"] as $groupVarsName => $groupVarsValueName) {
+					$s = $groupVarsName . "=" . $groupVarsValueName . "\n";
+					fwrite($myfile, $s);
+				}
+			}
+
+			if(array_key_exists("children", $groupValues) && count($groupValues["children"]) > 0) {
+				fwrite($myfile, "\n[" . $groupName . ":children]\n");
+				foreach($groupValues["children"] as $child) {
+					fwrite($myfile, $child . "\n");
+				}
+
+				fwrite($myfile, "\n");
+			}
 		}
 	}
+
 	fclose($myfile);
 }
 
@@ -380,19 +402,19 @@ function get_inventory($opts) {
 	global $config;
 
 	if(!array_key_exists("help", $opts) && (array_key_exists("list", $opts) || array_key_exists("static", $opts))) {
-		$data = get_host_list_from_op5(array_key_exists("static_limit", $opts) ? $opts["static_limit"] : null);
+		$data = get_host_list_from_op5();
 		$data = filter_active_hosts($data);
 				
 		if(array_key_exists("list", $opts)) {
-			$ret = parse_host_list_to_ansible_json($data);
-		} else if(array_key_exists("static", $opts)) { 
+			$ret = json_encode(parse_host_list_to_ansible($data));
+		} else if(array_key_exists("static", $opts)) {
+			$data_ansible = parse_host_list_to_ansible($data); 
 			create_static_inventory_file(
-				$data, 
-				array_key_exists("static_filename", $opts) ? $opts["static_filename"] : "op5_hosts.ansible", 
-				array_key_exists("static_group", $opts) ? $opts["static_group"] : "hosts"
+				$data_ansible, 
+				array_key_exists("static_filename", $opts) ? $opts["static_filename"] : "op5_hosts.ansible"
 			);
-		}
-		
+			$ret = "";
+		}		
 	} elseif(!array_key_exists("help", $opts) && array_key_exists("host", $opts)) {
 		$data = get_host_from_op5($opts["host"]);
 		$data = is_host_active($data);
@@ -408,13 +430,11 @@ function get_inventory($opts) {
 		$ret = isset($host_vars) ? json_encode($host_vars) : "{}";
 	} else {
 		$ret = "Usage: get_op5_inventory.php [OPTION]\n";
-		$ret .= "op5-ansible-dynamic-inventory @2018\n\n";
+		$ret .= "op5-ansible-dynamic-inventory opengd@2018\n\n";
 		$ret .= "--list\t\t\t\tget json list of op5 hosts\n";
 		$ret .= "--host=host\t\t\tget ansible meta variable from op5 host\n";
 		$ret .= "--static\t\t\tcreate inventory file from op5 hosts\n";
-		$ret .= "--static_group=NAME\t\tstatic inventory group name\n";
 		$ret .= "--static_filename=FILENAME\tfilename of static inventory\n";
-		$ret .= "--static_limit=limit\t\tlimit number of host for inventory\n";
 		$ret .= "--config_file=CONFIG_FILE\tfilepath to config file\n";
 		$ret .= "--verbose\t\t\tshow verbose data and errors\n";
 		$ret .= "--help\t\t\t\tshow this help message\n";
