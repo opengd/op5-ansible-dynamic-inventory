@@ -5,7 +5,24 @@
                 "userpwd": "api$Default:api",
                 "host": "https:\/\/YOUR.OP5.URL",
                 "api": "\/api\/filter\/query?format=json&query=",
-                "filters": {
+                "group_filters": [
+                    {
+                        "filter": "[hostgroups] all",
+                        "group_vars": {
+                            "var1": true,
+                            "var2": "var2"
+                        },
+                        "columns": { 
+                            "NAME": "name",
+                            "ADDRESS": "address"
+                        },
+                        "host_vars":{
+                            "ansible_port": 22,
+                            "ansible_host": "ADDRESS" 
+                        }
+                    }
+                ],
+                "host_filters": {
                     "demo": {
                         "filter": "[hosts]name~~\"demo*\"",
                         "columns": { 
