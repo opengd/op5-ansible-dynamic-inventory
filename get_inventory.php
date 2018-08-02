@@ -77,8 +77,8 @@ function get_host_list() {
 
 			$call .= $columns;
 
-			$call .= array_key_exists("limit", $filter) && is_int($filter["limit"]) ? "&limit=" . $filter["limit"] : "";
-			$call .= array_key_exists("offset", $filter) && is_int($filter["offset"]) ? "&offset=" . $filter["offset"] : "";
+			$call .= array_key_exists("limit", $filter) && is_int($filter["limit"]) && $filter["limit"] > 0 ? "&limit=" . $filter["limit"] : "";
+			$call .= array_key_exists("offset", $filter) && is_int($filter["offset"] && $filter["offset"] > 0) ? "&offset=" . $filter["offset"] : "";
 
 			$data = do_curl_call($listQueries["host"] . $listQueries["api"] . $call, $listQueries["userpwd"]);
 
@@ -118,14 +118,14 @@ function get_host_list_from_group() {
 				}
 				
 				$host_call .= $columns;
-
-				if(array_key_exists("limit", $filter) && is_int($filter["limit"])) {
+				
+				if(array_key_exists("limit", $filter) && is_int($filter["limit"]) && $filter["limit"] > 0) {
 					$host_call .= "&limit=" . $filter["limit"];
-				} elseif(!array_key_exists("limit", $filter) && $group["num_hosts"] > 0) {
+				} elseif((!array_key_exists("limit", $filter) || (array_key_exists("limit", $filter) && !$filter["limit"])) && $group["num_hosts"] > 0) {
 					$host_call .= "&limit=" . $group["num_hosts"];
 				}
 				
-				$host_call .= array_key_exists("offset", $filter) && is_int($filter["offset"]) ? "&offset=" . $filter["offset"] : "";
+				$host_call .= array_key_exists("offset", $filter) && is_int($filter["offset"]) && $filter["offset"] > 0 ? "&offset=" . $filter["offset"] : "";
 
 				$hosts = do_curl_call($host_call, $listQueries["userpwd"]);
 
@@ -282,7 +282,6 @@ function filter_active_group_hosts($hosts, $config_type) {
 
 							if($port) {
 								$filter[$i]['ansible_port'] = $port;
-								//var_dump($filter[$i]);
 								array_push($filter_hosts, $filter[$i]);
 							}
 						}
@@ -461,9 +460,7 @@ function get_list_query_filter($filterName, $queryIndex, $config_type) {
  */
 function parse_host_vars($host, $host_vars, $columns) {
 	$main = array();
-	var_dump(array_key_exists("ansible_port", $host));
-	var_dump($host);
-	var_dump($host_vars);
+
 	foreach($host_vars as $key => $var) {
 		switch($key) {
 			case "ansible_port":
@@ -626,5 +623,7 @@ if($config_file_resource) {
 }
 
 echo get_inventory($opts);
+
+if($verbose) echo "\n";
 
 //echo json_encode($config);
