@@ -368,19 +368,22 @@ function parse_host_list_to_ansible($hosts, $config_type) {
 	foreach($hosts as $index => $group) {
 		foreach($group as $filterName => $filter) {
 			$main[$filterName]["hosts"] = array();
+
+			$host_config = get_list_query_filter($filterName, $index, $config_type);
+
 			foreach($filter as $host) {
 				array_push($main[$filterName]["hosts"], $host['name']);
 				$main["_meta"]["hostvars"][$host['name']] = parse_host_vars($host, 
-					get_list_query_filter($filterName, $index, $config_type)["host_vars"], 
-					get_list_query_filter($filterName, $index, $config_type)["columns"]
+					$host_config["host_vars"], 
+					$host_config["columns"]
 				);
 			}
-			if(array_key_exists("group_vars", get_list_query_filter($filterName, $index, $config_type))) {
-				$main[$filterName]["vars"] = get_list_query_filter($filterName, $index, $config_type)["group_vars"];
+			if(array_key_exists("group_vars", $host_config) && count($host_config["group_vars"]) > 0) {
+				$main[$filterName]["vars"] = $host_config["group_vars"];
 			}
 
-			if(array_key_exists("children", get_list_query_filter($filterName, $index, $config_type))) {
-				$main[$filterName]["children"] = get_list_query_filter($filterName, $index, $config_type)["children"];
+			if(array_key_exists("children", $host_config)) {
+				$main[$filterName]["children"] = $host_config["children"];
 			}	
 		}
 	}
@@ -401,21 +404,25 @@ function parse_group_list_to_ansible($hosts, $config_type) {
 	$main = array("_meta" => array("hostvars" => array()));
 	foreach($hosts as $index => $group) {
 		foreach($group as $groupIndex => $groupValue) {
+
+			$host_config = get_list_query_filter($groupIndex, $index, $config_type);
+
 			foreach($groupValue as $filterName => $filter) {
 				$main[$filterName]["hosts"] = array();
+
 				foreach($filter as $host) {
 					array_push($main[$filterName]["hosts"], $host['name']);
 					$main["_meta"]["hostvars"][$host['name']] = parse_host_vars($host, 
-						get_list_query_filter($groupIndex, $index, $config_type)["host_vars"], 
-						get_list_query_filter($groupIndex, $index, $config_type)["columns"]
+						$host_config["host_vars"], 
+						$host_config["columns"]
 					);
 				}
-				if(array_key_exists("group_vars", get_list_query_filter($groupIndex, $index, $config_type))) {
-					$main[$filterName]["vars"] = get_list_query_filter($groupIndex, $index, $config_type)["group_vars"];
+				if(array_key_exists("group_vars", $host_config) && count($host_config["group_vars"]) > 0) {
+					$main[$filterName]["vars"] = $host_config["group_vars"];
 				}
 
-				if(array_key_exists("children", get_list_query_filter($groupIndex, $index, $config_type))) {
-					$main[$filterName]["children"] = get_list_query_filter($groupIndex, $index, $config_type)["children"];
+				if(array_key_exists("children", $host_config)) {
+					$main[$filterName]["children"] = $host_config["children"];
 				}				
 			}
 		}
