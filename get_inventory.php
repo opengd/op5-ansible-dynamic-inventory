@@ -340,7 +340,7 @@ function is_host_active($hosts) {
 function get_ansible_port($host, $ports) {
 	global $verbose;
 
-	if($verbose) echo "\n# Testing ansible ssh port on host: " . $host['address'];
+	if($verbose) echo "\n# Testing ansible ssh port on host " . $host['name'] . " at " . $host['address'];
 	
 	foreach($ports as $port) {
 		if ($fp = @fsockopen($host['address'], $port, $errno, $errstr, 1)) { 
@@ -622,8 +622,4 @@ if($config_file_resource) {
 	$config = json_decode($config_file, true);
 }
 
-echo get_inventory($opts);
-
-if($verbose) echo "\n";
-
-//echo json_encode($config);
+echo ($verbose) ? "\n" . get_inventory($opts) . "\n" : get_inventory($opts) ;
