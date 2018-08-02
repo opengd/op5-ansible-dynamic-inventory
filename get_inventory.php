@@ -260,7 +260,7 @@ function filter_active_hosts($hosts, $config_type) {
  * @return array
  */
 function filter_active_group_hosts($hosts, $config_type) {
-	global $config;
+	global $config, $verbose;
 	
 	foreach($hosts as $key => $host) {
 		foreach($host as $groupIndex => $groupValue) {
@@ -282,6 +282,7 @@ function filter_active_group_hosts($hosts, $config_type) {
 
 							if($port) {
 								$filter[$i]['ansible_port'] = $port;
+								//var_dump($filter[$i]);
 								array_push($filter_hosts, $filter[$i]);
 							}
 						}
@@ -338,13 +339,20 @@ function is_host_active($hosts) {
  * @return int
  */
 function get_ansible_port($host, $ports) {
+	global $verbose;
+
+	if($verbose) echo "\n# Testing ansible ssh port on host: " . $host['address'];
+	
 	foreach($ports as $port) {
 		if ($fp = @fsockopen($host['address'], $port, $errno, $errstr, 1)) { 
 			fclose($fp);
+			if($verbose) echo "\n" . $port . " OK";
 			return $port;					
+		} else {
+			if($verbose) echo "\n" . $port . " no";
 		}
 	}
-
+	if($verbose) echo "\nCould not find any open ssh port for ansible";
 	return null;
 }
 
@@ -453,12 +461,19 @@ function get_list_query_filter($filterName, $queryIndex, $config_type) {
  */
 function parse_host_vars($host, $host_vars, $columns) {
 	$main = array();
-
+	var_dump(array_key_exists("ansible_port", $host));
+	var_dump($host);
+	var_dump($host_vars);
 	foreach($host_vars as $key => $var) {
 		switch($key) {
 			case "ansible_port":
-				$main[$key] = array_key_exists('ansible_port', $host) ? $host['ansible_port'] : $var;
-				$main[$key] = is_array($main[$key]) && count($main[$key]) > 0 ? $main[$key][0] : 22;
+				if(array_key_exists("ansible_port", $host)) {
+					$main[$key] = $host['ansible_port'];
+				} else if(is_array($host_vars[$key]) && count($host_vars[$key]) > 0) {
+					$main[$key] = $host_vars[$key][0];
+				} else {
+					$main[$key] = 22;
+				}
 				break;
 			default:
 				$main[$key] = array_key_exists($var, $columns) ? $host[$columns[$var]] : $var;
@@ -561,13 +576,15 @@ function get_inventory($opts) {
 		$data = is_host_active($data);
 
 		foreach($data as $key => $value) {
-			$host_vars = parse_host_vars($data[$key][0], 
-				$config["op5"]["host_query"][$key]["host_vars"],
-				$config["op5"]["host_query"][$key]["columns"]
-			);
-			break;
+			if(count($data[$key][0]) > 0) {
+				$host_vars = parse_host_vars($data[$key][0], 
+					$config["op5"]["host_query"][$key]["host_vars"],
+					$config["op5"]["host_query"][$key]["columns"]
+				);
+				break;
+			}
 		}
-
+		
 		$ret = isset($host_vars) ? json_encode($host_vars) : "{}";
 	} else {
 		$ret = "Usage: get_op5_inventory.php [OPTION]\n";
