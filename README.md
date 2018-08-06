@@ -2,6 +2,20 @@
 
 Script to create a Ansible dynamic inventory from OP5.
 
+```
+myusername@myhost:~/op5-ansible-dynamic-inventory# ./get_inventory.php
+Usage: get_op5_inventory.php [OPTION]
+op5-ansible-dynamic-inventory opengd@2018
+
+--list                          get json list of op5 hosts
+--host=host                     get ansible meta variable from op5 host
+--static                        create inventory file from op5 hosts
+--static_filename=FILENAME      filename of static inventory
+--config_file=CONFIG_FILE       filepath to config file
+--verbose                       show verbose data and errors
+--help                          show this help message
+```
+
 ## Getting Started
 
 ### Prerequisites
