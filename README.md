@@ -28,6 +28,8 @@ op5-ansible-dynamic-inventory script can be config by using a config json file o
 
 This is the example config.json, you can find it as config.json.example in the op5-ansible-dynamic-inventory folder. Copy this file and rename it to config.json, and edit the copy to create your own config file.
 
+The filter part that is used to get list of host from op5 is in the same format as it is on filtering the host list in op5 monitor. For more information about filtering please check op5's documentation [op5 host filtering](https://kb.op5.com/display/DOC/Filters#sthash.QxlsBr3U.dpbs).
+
 ``` javascript
 {
     "op5":{
@@ -79,7 +81,39 @@ This is the example config.json, you can find it as config.json.example in the o
 }
 ```
 
-Ansible 
+### Ansible
+
+To run an Ansible playbook or a direct command using the script, you will pass the script as the inventory list, just like it was a static list of host.
+
+```
+ansible all -l /the/path/to/get_inventory.php -m ping
+```
+
+Example, if the script and config.json is in current directory:
+```
+ansible all -l get_inventory.php -m ping
+```
+
+This will retriev a host list based on you config.json and push it to Ansible for use.
+
+### Generate a static host list
+
+Generate a static host list will use the same config.json as default but you can also specify a other config file to use to create the list.
+
+```
+./get_inventory.php --static
+```
+This will create a static host list named op5_hosts.ansible based on default config.json.
+
+```
+./get_inventory.php --static --config_file=myconfig.json
+```
+This will create a static host list named op5_hosts.ansible based on the myconfig.json file.
+
+```
+./get_inventory.php --static --config_file=myconfig.json --static_filename=myhosts.ansible
+```
+This will create static host list named myhosts.ansible based on the myconfig.json file.
 
 ## Built With
 
