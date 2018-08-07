@@ -591,7 +591,7 @@ function get_inventory($opts) {
 		
 		$ret = isset($host_vars) ? json_encode($host_vars) : "{}";
 	} else {
-		$ret = "Usage: get_op5_inventory.php [OPTION]\n";
+		$ret = "Usage: get_inventory.php [OPTION]\n";
 		$ret .= "op5-ansible-dynamic-inventory opengd@2018\n\n";
 		$ret .= "--list\t\t\t\tget json list of op5 hosts\n";
 		$ret .= "--host=host\t\t\tget ansible meta variable from op5 host\n";
