@@ -624,7 +624,7 @@ $verbose = array_key_exists("verbose", $opts);
 $config_file_resource = array_key_exists("config_file", $opts) ? fopen($opts["config_file"], "r") : fopen(CONFIG_FILE, "r");
 
 if($config_file_resource) {
-	$config_file = fread($config_file_resource, filesize(CONFIG_FILE));
+	$config_file = fread($config_file_resource, filesize(array_key_exists("config_file", $opts) ? $opts["config_file"] : DEFAULT_CONFIG_FILE));
 	fclose($config_file_resource);
 	$config = json_decode($config_file, true);
 }
